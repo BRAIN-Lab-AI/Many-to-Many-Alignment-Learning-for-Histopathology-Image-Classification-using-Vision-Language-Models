@@ -95,20 +95,23 @@ The proposed framework can be applied to:
 
 • Improve diagnostic support in resource-limited settings with few pathologists.
 
-• Enable transfer learning across institutions and datasets without requiring costly annota-
-tions.
+• Enable transfer learning across institutions and datasets without requiring costly annotations.
 
 
 ## What is the paper trying to do, and what are you planning to do?
 We propose to investigate the application of zero-shot learning with Vision-Language Models
 (VLMs) for histopathology image classification. The method will involve the following steps:
-1. Feature Extraction: Use pre-trained VLMs (e.g., CLIP, BioCLIP, or MedCLIP) to ex-
+
+1. **Feature Extraction:** Use pre-trained VLMs (e.g., CLIP, BioCLIP, or MedCLIP) to ex-
 tract joint image-text embeddings.
-2. Zero-Shot Classification: Formulate class-specific prompts (e.g., “clear cell renal car-
+
+3. **Zero-Shot Classification:** Formulate class-specific prompts (e.g., “clear cell renal car-
 cinoma” or “lung adenocarcinoma”) and map them into the text embedding space.
-3. Alignment: Compute similarity between histopathology image embeddings and text em-
+
+4. **Alignment:** Compute similarity between histopathology image embeddings and text em-
 beddings to perform classification without explicit task-specific training.
-4. Evaluation: Compare zero-shot performance against baseline supervised methods.
+
+5. **Evaluation:** Compare zero-shot performance against baseline supervised methods.
 
 # THE FOLLOWING IS SUPPOSED TO BE DONE LATER
 
