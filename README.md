@@ -42,6 +42,7 @@ fication and segmentation tasks.
 
 
 References:
+
 [1] Geert Litjens et al. A survey on deep learning in medical image analysis. Medical image
 analysis, 42:60–88, 2017.
 
@@ -87,9 +88,13 @@ heterogeneity, unseen classes, and limited annotations, while remaining interpre
 
 
 ## Application Area and Project Domain
+
 The proposed framework can be applied to:
+
 • Assist pathologists by providing rapid preliminary classification of histopathology slides.
+
 • Improve diagnostic support in resource-limited settings with few pathologists.
+
 • Enable transfer learning across institutions and datasets without requiring costly annota-
 tions.
 
