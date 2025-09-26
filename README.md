@@ -20,12 +20,16 @@ intra-observer differences, often limits the generalizability of trained models.
 models optimized for one institution may underperform when applied to others. Additionally,
 rare or newly identified cancer subtypes frequently lack sufficient labeled samples, hindering
 the development of robust classifiers.
+
+
 Recent advances in vision-language models (VLMs), such as CLIP [3], offer a promising
 alternative. VLMs learn joint embeddings of images and text, enabling zero-shot classifica-
 tion—assigning labels to classes unseen during training using only textual prompts. Medical
 adaptations of these models, such as BioCLIP and MedCLIP, further enhance alignment be-
 tween medical images and domain-specific textual knowledge, improving performance under
 domain shift [4, 5].
+
+
 Building upon this direction, the CPLIP framework (Comprehensive Pathology Language-
 Image Pretraining) introduces a many-to-many alignment strategy between “bags” of tex-
 tual prompts and visual patches [6]. Unlike one-to-one alignment approaches, CPLIP cap-
@@ -35,6 +39,8 @@ sive alignment, combined with contrastive learning, enables stronger generalizat
 classes and datasets. Empirical evaluations demonstrate that CPLIP significantly outperforms
 earlier VLM-based methods such as PLIP, MI-Zero, and BiomedCLIP in both zero-shot classi-
 fication and segmentation tasks.
+
+
 References:
 [1] Geert Litjens et al. A survey on deep learning in medical image analysis. Medical image
 analysis, 42:60–88, 2017.
@@ -54,17 +60,21 @@ on Computer Vision and Pattern Recognition, pages 11450–11459, 2024.
 ## Problem Statement
 Despite the promise of vision-language models for zero-shot histopathology, two key chal-
 lenges remain:
-• Limited modality alignment. Most existing approaches align each image or patch with
+
+• **Limited modality alignment.** Most existing approaches align each image or patch with
 a single prompt (one-to-one), which fails to capture the complex and multi-faceted nature
 of pathology images. Rich contextual cues such as morphology, etiology, and descriptive
 variations are often underutilized. CPLIP addresses this by introducing many-to-many
 alignments between prompt bags and image bags, achieving more comprehensive modal-
 ity integration [6].
-• Dataset heterogeneity and domain shift. Histopathology datasets differ across staining
+
+• **Dataset heterogeneity and domain shift.** Histopathology datasets differ across staining
 protocols, scanners, resolutions, and institutions. Models trained on one dataset often
 generalize poorly to others. While CPLIP improves robustness under these conditions,
 further strategies are needed to handle unseen classes, rare cancer subtypes, and cross-
 dataset variability.
+
+
 we propose to extend and adapt vision-language zero-shot learning to histopathology image classification,
 with a focus on cancer subtypes such as renal cell carcinoma, non-small cell lung carcinoma, and metastatic
 breast cancer. Our goal is to design a robust and morphologically aware framework that can handle dataset 
@@ -77,6 +87,8 @@ The proposed framework can be applied to:
 • Improve diagnostic support in resource-limited settings with few pathologists.
 • Enable transfer learning across institutions and datasets without requiring costly annota-
 tions.
+
+
 ## What is the paper trying to do, and what are you planning to do?
 We propose to investigate the application of zero-shot learning with Vision-Language Models
 (VLMs) for histopathology image classification. The method will involve the following steps:
