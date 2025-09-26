@@ -44,14 +44,19 @@ fication and segmentation tasks.
 References:
 [1] Geert Litjens et al. A survey on deep learning in medical image analysis. Medical image
 analysis, 42:60–88, 2017.
+
 [2] Daisuke Komura and Shumpei Ishikawa. Machine learning methods for histopathological
 image analysis. Computational and structural biotechnology journal, 16:34–42, 2018.
+
 [3] Alec Radford et al. Learning transferable visual models from natural language supervision.
 In International conference on machine learning, pages 8748–8763. PMLR, 2021.
+
 [4] Y Zhang et al. A survey on the use of CLIP in medical imaging. arXiv preprint
 arXiv:2303.08983, 2023.
+
 [5] Xin Gu et al. Medicalclip: Contrastive learning of medical visual and language represen-
 tations. arXiv preprint arXiv:2210.11372, 2022.
+
 [6] Sajid Javed, Arif Mahmood, Iyyakutti Iyappan Ganapathi, Fayaz Ali Dharejo, Naoufel
 Werghi, and Mohammed Bennamoun. Cplip: Zero-shot learning for histopathology with
 comprehensive vision-language alignment. In Proceedings of the IEEE/CVF Conference
