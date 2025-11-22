@@ -120,7 +120,8 @@ beddings to perform classification without explicit task-specific training.
 - **Report:** [Project Report](/report.pdf)
 
 ### Reference Paper
-- [High-Resolution Image Synthesis with Latent Diffusion Models](https://arxiv.org/abs/2112.10752)
+- [CPLIP: Zero-Shot Learning for Histopathology with Comprehensive
+Vision-Language Alignment] https://openaccess.thecvf.com/content/CVPR2024/papers/Javed_CPLIP_Zero-Shot_Learning_for_Histopathology_with_Comprehensive_Vision-Language_Alignment_CVPR_2024_paper.pdf 
 
 ### Reference Dataset
 - [LAION-5B Dataset](https://laion.ai/blog/laion-5b/)
@@ -129,21 +130,24 @@ beddings to perform classification without explicit task-specific training.
 ## Project Technicalities
 
 ### Terminologies
-- **Diffusion Model:** A generative model that progressively transforms random noise into coherent data.
-- **Latent Space:** A compressed, abstract representation of data where complex features are captured.
-- **UNet Architecture:** A neural network with an encoder-decoder structure featuring skip connections for better feature preservation.
+- **Pathology:** Branch of medical science that is focused on the study and diagnosis of disease.
+- **Histopathology:** Histopathology is the diagnosis and study of diseases of the tissues, and involves examining tissues and/or cells under a microscope.
+- **Computational Pathology:** A brand-new discipline that aims to enhance patient care by utilizing advances in artificial intelligence and data
+                               generated from anatomic and clinical pathology.
+- **Vision Language Model:** Fusion of vision and natural language models. It ingests images and their respective textual descriptions as inputs and learns to associate                                 the knowledge from the two modalities.
+- **Weakly Supervised Laearning:**
+- **Self-Supervised Laearning:**
+- **Vison-Language Supervised Laearning:**
+- **Zero Shot Laearning:** A Zero-shot learning is a machine learning problem in which an AI model is trained to recognize and categorize objects or concepts that it has                              never seen. In zero shot, we do not train the model on labeled WSI examples for each diagnostic category. Instead, the model uses text prompts                             (e.g., “clear cell renal carcinoma”, “benign stroma”, “invasive ductal carcinoma”) and matches them with the image features learned during                                  pretraining.
+- **Whole Slide Images:** Also called “virtual” microscopy, involves digitally scanning a tissue slide containing thin sections of tissue specimens for microscopic                                   examination and storing it as digital images. This process allows for remote collaboration.
+- **Tile-level zero-shot classification:** The ability of a machine learning model to classify individual tiles or patches of a whole slide image (WSI) into their correct                                             categories without having been explicitly trained on those specific tiles or annotations.
 - **Text Encoder:** A model that converts text into numerical embeddings for downstream tasks.
-- **Perceptual Loss:** A loss function that measures high-level differences between images, emphasizing perceptual similarity.
-- **Tokenization:** The process of breaking down text into smaller units (tokens) for processing.
-- **Noise Vector:** A randomly generated vector used to initialize the diffusion process in generative models.
-- **Decoder:** A network component that transforms latent representations back into image space.
-- **Iterative Refinement:** The process of gradually improving the quality of generated data through multiple steps.
-- **Conditional Generation:** The process where outputs are generated based on auxiliary inputs, such as textual descriptions.
 
 ### Problem Statements
-- **Problem 1:** Achieving high-resolution and detailed images using conventional diffusion models remains challenging.
-- **Problem 2:** Existing models suffer from slow inference times during the image generation process.
-- **Problem 3:** There is limited capability in performing style transfer and generating diverse artistic variations.
+- **Problem 1:** Most existing approaches align each image or patch with a single prompt (one-to-one), which fails to capture the complex and multi-faceted nature
+                 of pathology images.
+- **Problem 2:** Histopathology datasets differ across staining protocols, scanners, resolutions, and institutions. Models trained on one dataset often
+                 generalize poorly to others.
 
 ### Loopholes or Research Areas
 - **Evaluation Metrics:** Lack of robust metrics to effectively assess the quality of generated images.
