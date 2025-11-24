@@ -116,15 +116,16 @@ beddings to perform classification without explicit task-specific training.
 # THE FOLLOWING IS SUPPOSED TO BE DONE LATER
 
 ### Project Documents
-- **Presentation:** [Project Presentation](/presentation.pptx)
-- **Report:** [Project Report](/report.pdf)
+- **Presentation:** [Project Presentation]
+- **Report:** [Project Report](/Dl Presentation.pdf)
 
 ### Reference Paper
 - [CPLIP: Zero-Shot Learning for Histopathology with Comprehensive
 Vision-Language Alignment] https://openaccess.thecvf.com/content/CVPR2024/papers/Javed_CPLIP_Zero-Shot_Learning_for_Histopathology_with_Comprehensive_Vision-Language_Alignment_CVPR_2024_paper.pdf 
 
 ### Reference Dataset
-- [LAION-5B Dataset](https://laion.ai/blog/laion-5b/)
+- [BreakHis dataset]
+ https://www.kaggle.com/datasets/paultimothymooney/breast-histopathology-images?resource=download 
 
 
 ## Project Technicalities
