@@ -134,13 +134,13 @@ Vision-Language Alignment] https://openaccess.thecvf.com/content/CVPR2024/papers
 - **Histopathology:** Histopathology is the diagnosis and study of diseases of the tissues, and involves examining tissues and/or cells under a microscope.
 - **Computational Pathology:** A brand-new discipline that aims to enhance patient care by utilizing advances in artificial intelligence and data
                                generated from anatomic and clinical pathology.
-- **Vision Language Model:** Fusion of vision and natural language models. It ingests images and their respective textual descriptions as inputs and learns to associate                                 the knowledge from the two modalities.
-- **Weakly Supervised Laearning:**
-- **Self-Supervised Laearning:**
-- **Vison-Language Supervised Laearning:**
-- **Zero Shot Laearning:** A Zero-shot learning is a machine learning problem in which an AI model is trained to recognize and categorize objects or concepts that it has                              never seen. In zero shot, we do not train the model on labeled WSI examples for each diagnostic category. Instead, the model uses text prompts                             (e.g., “clear cell renal carcinoma”, “benign stroma”, “invasive ductal carcinoma”) and matches them with the image features learned during                                  pretraining.
-- **Whole Slide Images:** Also called “virtual” microscopy, involves digitally scanning a tissue slide containing thin sections of tissue specimens for microscopic                                   examination and storing it as digital images. This process allows for remote collaboration.
-- **Tile-level zero-shot classification:** The ability of a machine learning model to classify individual tiles or patches of a whole slide image (WSI) into their correct                                             categories without having been explicitly trained on those specific tiles or annotations.
+- **Vision Language Model:** Fusion of vision and natural language models. It ingests images and their respective textual descriptions as inputs and learns to associate the knowledge from the two modalities.
+- **Weakly Supervised Learning:** Model learns from labels that are cheap, incomplete, or noisy, not perfect ground truth. There is some supervision, but it is weak.
+- **Self-Supervised Learning** Model learns from unlabeled data only by creating a fake task from the data itself. No human given labels and the model makes supervision from the input.
+- **Vison-Language Supervised Learning:** Model learns using paired images and text as supervision. Each training sample is (image, caption) or (image, label sentence). The model is trained so that correct text matches the image better than wrong text.
+- **Zero Shot Laearning:** A Zero-shot learning is a machine learning problem in which an AI model is trained to recognize and categorize objects or concepts that it has never seen. In zero shot, we do not train the model on labeled WSI examples for each diagnostic category. Instead, the model uses text prompts(e.g., “clear cell renal carcinoma”, “benign stroma”, “invasive ductal carcinoma”) and matches them with the image features learned during pretraining.
+- **Whole Slide Images:** Also called “virtual” microscopy, involves digitally scanning a tissue slide containing thin sections of tissue specimens for microscopic examination and storing it as digital images. This process allows for remote collaboration.
+- **Tile-level zero-shot classification:** The ability of a machine learning model to classify individual tiles or patches of a whole slide image (WSI) into their correct categories without having been explicitly trained on those specific tiles or annotations.
 - **Text Encoder:** A model that converts text into numerical embeddings for downstream tasks.
 
 ### Problem Statements
@@ -150,73 +150,51 @@ Vision-Language Alignment] https://openaccess.thecvf.com/content/CVPR2024/papers
                  generalize poorly to others.
 
 ### Loopholes or Research Areas
-- **Evaluation Metrics:** Lack of robust metrics to effectively assess the quality of generated images.
-- **Output Consistency:** Inconsistencies in output quality when scaling the model to higher resolutions.
-- **Computational Resources:** Training requires significant GPU compute resources, which may not be readily accessible.
+- **Weak and noisy labels instead of perfect annotations:**
+- Pixel level masks for nuclei, glands, tumor regions are rare and expensive.
+- Huge scope for better weakly supervised and point supervised methods that get close to fully supervised performance using cheap labels.
+  **Research Ideas:**
+Develop a model that uses a few pixel level masks plus many slide level labels, and compare it directly with a fully supervised U-Net baseline.
 
-### Problem vs. Ideation: Proposed 3 Ideas to Solve the Problems
+Design a MIL based method that uses only slide level tumor labels but still produces pixel level heatmaps that pathologists rate as clinically meaningful.
+
+Propose a label noise modeling method that treats each pathologist as a noisy annotator and learns a consensus label from conflicting masks.
+  
+- **Poor generalization across hospitals and scanners:**
+- Models often drop in performance when moved from one center or stain protocol to another.
+- Strong need for domain generalization and test time adaptation so one model works reliably across labs
+  **Research Ideas:**
+Train a stain and scanner invariant representation using self supervised pretraining on multi center WSIs, then evaluate zero shot transfer to a new hospital.
+
+Implement a test time adaptation module that adjusts feature statistics on unlabeled slides from a new center and measure gain over no adaptation.
+
+Build a benchmark where one trains on center A and tests on centers B and C, then compare different domain generalization strategies on the same setup
+  
+- **Vision language and foundation models for pathology:**
+- CLIP style models trained on real pathology images and pathology text are still very early.
+- Great opportunity to build and evaluate pathology specific vision language models for zero shot classification and segmentation, and to make their outputs more interpretable for pathologists
+**Research Ideas:**
+Create a small pathology specific CLIP like model using WSIs plus text from pathology reports, and test zero shot tumor subtype classification.
+
+Explore prompt engineering for histology, for example compare simple labels (tumor, normal) versus richer prompts that include tissue type and grade.
+
+Design a vision language system that highlights image regions while generating a short textual explanation and ask pathologists to rate usefulness and correctness.
+  
+### Problem vs. Ideation: Proposed Idea to Solve the Problems
 1. **Optimized Architecture:** Redesign the model architecture to improve efficiency and balance image quality with faster inference.
 2. **Advanced Loss Functions:** Integrate novel loss functions (e.g., perceptual loss) to better capture artistic nuances and structural details.
 3. **Enhanced Data Augmentation:** Implement sophisticated data augmentation strategies to improve the model’s robustness and reduce overfitting.
 
-### Proposed Solution: Code-Based Implementation
-This repository provides an implementation of the enhanced stable diffusion model using PyTorch. The solution includes:
+### Proposed Solution:  Future work will focus on addressing
+these challenges through adaptive prompt optimization, stain-
+invariant visual pretraining, and the integration of few-shot or
+weakly supervised fine-tuning mechanisms to reduce domain
+bias. Extending the framework to multi-class classification
+and cross-dataset generalization tasks will also be explored to
+enhance the clinical applicability of vision–language models
+in digital pathology.
 
-- **Modified UNet Architecture:** Incorporates residual connections and efficient convolutional blocks.
-- **Novel Loss Functions:** Combines Mean Squared Error (MSE) with perceptual loss to enhance feature learning.
-- **Optimized Training Loop:** Reduces computational overhead while maintaining performance.
-
-### Key Components
-- **`model.py`**: Contains the modified UNet architecture and other model components.
-- **`train.py`**: Script to handle the training process with configurable parameters.
-- **`utils.py`**: Utility functions for data processing, augmentation, and metric evaluations.
-- **`inference.py`**: Script for generating images using the trained model.
-
-## Model Workflow
-The workflow of the Enhanced Stable Diffusion model is designed to translate textual descriptions into high-quality artistic images through a multi-step diffusion process:
-
-1. **Input:**
-   - **Text Prompt:** The model takes a text prompt (e.g., "A surreal landscape with mountains and rivers") as the primary input.
-   - **Tokenization:** The text prompt is tokenized and processed through a text encoder (such as a CLIP model) to obtain meaningful embeddings.
-   - **Latent Noise:** A random latent noise vector is generated to initialize the diffusion process, which is then conditioned on the text embeddings.
-
-2. **Diffusion Process:**
-   - **Iterative Refinement:** The conditioned latent vector is fed into a modified UNet architecture. The model iteratively refines this vector by reversing a diffusion process, gradually reducing noise while preserving the text-conditioned features.
-   - **Intermediate States:** At each step, intermediate latent representations are produced that increasingly capture the structure and details dictated by the text prompt.
-
-3. **Output:**
-   - **Decoding:** The final refined latent representation is passed through a decoder (often part of a Variational Autoencoder setup) to generate the final image.
-   - **Generated Image:** The output is a synthesized image that visually represents the input text prompt, complete with artistic style and detail.
-
-## How to Run the Code
-
-1. **Clone the Repository:**
-    ```bash
-    git clone https://github.com/yourusername/enhanced-stable-diffusion.git
-    cd enhanced-stable-diffusion
-    ```
-
-2. **Set Up the Environment:**
-    Create a virtual environment and install the required dependencies.
-    ```bash
-    python3 -m venv venv
-    source venv/bin/activate  # On Windows use: venv\Scripts\activate
-    pip install -r requirements.txt
-    ```
-
-3. **Train the Model:**
-    Configure the training parameters in the provided configuration file and run:
-    ```bash
-    python train.py --config configs/train_config.yaml
-    ```
-
-4. **Generate Images:**
-    Once training is complete, use the inference script to generate images.
-    ```bash
-    python inference.py --checkpoint path/to/checkpoint.pt --input "A surreal landscape with mountains and rivers"
-    ```
 
 ## Acknowledgments
 - **Open-Source Communities:** Thanks to the contributors of PyTorch, Hugging Face, and other libraries for their amazing work.
-- **Individuals:** Special thanks to bla, bla, bla for the amazing team effort, invaluable guidance and support throughout this project.
-- **Resource Providers:** Gratitude to ABC-organization for providing the computational resources necessary for this project.
+
