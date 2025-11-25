@@ -1,7 +1,6 @@
 # HistoAlign: A Dual-Encoder Many-to-Many Alignment Framework for Zero-Shot Histopathology Classification
 
 
-
 ## Project Metadata
 ### Authors
 - **Team:** QURATULAN ARSHAD
@@ -89,14 +88,12 @@ breast cancer. Our goal is to design a robust and morphologically aware framewor
 heterogeneity, unseen classes, and limited annotations, while remaining interpretable and clinically relevant.
 
 
-## Application Area and Project Domain
+## Application Areas and Project Domain
 
 The proposed framework can be applied to:
 
 • Assist pathologists by providing rapid preliminary classification of histopathology slides.
-
 • Improve diagnostic support in resource-limited settings with few pathologists.
-
 • Enable transfer learning across institutions and datasets without requiring costly annotations.
 
 
@@ -115,10 +112,10 @@ beddings to perform classification without explicit task-specific training.
 
 5. **Evaluation:** Compare zero-shot performance against baseline supervised methods.
 
-# THE FOLLOWING IS SUPPOSED TO BE DONE LATER
+
 
 ### Project Documents
-- **Presentation:** [Project Presentation](/DL Presentation.pdf)
+- **Presentation:** [Project Presentation]
 - **Report:** [Project Report]
 
 ### Reference Paper
@@ -128,9 +125,6 @@ Vision-Language Alignment] https://openaccess.thecvf.com/content/CVPR2024/papers
 ### Reference Dataset
 - [BreakHis dataset]
  https://www.kaggle.com/datasets/paultimothymooney/breast-histopathology-images?resource=download 
-
-
-## Project Technicalities
 
 ### Terminologies
 - **Pathology:** Branch of medical science that is focused on the study and diagnosis of disease.
@@ -188,25 +182,15 @@ Design a vision language system that highlights image regions while generating a
 2. **Advanced Loss Functions:** Integrate novel loss functions (e.g., perceptual loss) to better capture artistic nuances and structural details.
 3. **Enhanced Data Augmentation:** Implement sophisticated data augmentation strategies to improve the model’s robustness and reduce overfitting.
 
-### Proposed Solution:  Future work will focus on addressing
+### Proposed Solution:  
 
-\# HistoAlign: Binary Zero-Shot Histopathology Classification (CPU Version)
-
-
+\# HistoAlign: Binary Zero-Shot Histopathology Classification 
 
 \*\*HistoAlign\*\* is a dual-encoder zero-shot learning framework for binary classification of breast histopathology images using the \*\*PLIP\*\* model.  
 
 The framework performs \*benign vs. malignant\* classification in a pure zero-shot setting and runs entirely on \*\*CPU\*\*, making it accessible and reproducible for researchers without GPU resources.
 
-
-
----
-
-
-
 \## 🚀 **Overview**
-
-
 
 Histopathological image analysis traditionally relies on large, annotated datasets and model fine-tuning.  
 
@@ -215,78 +199,43 @@ Histopathological image analysis traditionally relies on large, annotated datase
 It leverages pathology-specific and general vision encoders to capture both domain-aware and generalizable representations for robust zero-shot classification.
 
 
-
----
-
-
-
 \## 🧩 **Key Features**
-
-
 
 \- \*\*Dual-Encoder Design:\*\* Integrates PLIP (pathology-aware) and CLIP (general-purpose) encoders.  
 
 \- \*\*Many-to-Many Alignment:\*\* Fuses all visual and textual embedding pairs for enhanced semantic alignment.  
 
 \- \*\*Clinical Prompt Engineering:\*\* Utilizes text templates inspired by diagnostic language used in pathology reports.  
-
 \- \*\*CPU Compatibility:\*\* Fully optimized for CPU-only systems.  
 
 \- \*\*Comprehensive Evaluation:\*\* Automatically computes metrics, ROC-AUC, and visual outputs (confusion matrix, ROC curve).
 
 
-
----
-
-
-
+## Project Technicalities
 \## ⚙️ **System Requirements**
-
-
 
 | Component | Specification |
 
 |------------|---------------|
 
 | \*\*Operating System\*\* | Windows 10/11, Ubuntu 20.04+, macOS |
-
 | \*\*Python Version\*\* | ≥ 3.8 |
-
 | \*\*Processor\*\* | Intel i5 / AMD Ryzen 5 or higher |
-
 | \*\*RAM\*\* | 16 GB recommended |
-
 | \*\*GPU\*\* | Not required |
-
 | \*\*Storage\*\* | 10 GB free space |
 
-
-
-\### 📦 Required Libraries
+\### 📦 **Required Libraries**
 
 Install all dependencies before running:
 
 ```bash
-
 pip install torch torchvision torchaudio
-
 pip install transformers==4.46.3
-
 pip install pandas numpy scikit-learn matplotlib tqdm pillow
 
+\### **Dataset Structure**
 
-
-
-
-
-
-
-
-
-
-**Dataset Structure**
-
-D:\\Ain\\dataset1
 
 │
 
@@ -310,98 +259,37 @@ D:\\Ain\\dataset1
 
 └── 8950  (benign)
 
-
-
-
-
-
  **Model Workflow**
-
-
 
 1. **Input Stage:**
 
-
-
 Breast histopathology images (BreakHis 10-folder subset).
-
-
-
 Textual prompts describing benign and malignant morphology.
-
-
 
 2\. **Feature Encoding:**
 
-
-
 PLIP extracts pathology-specific visual features.
-
-
-
 CLIP provides general visual–semantic representations.
-
-
-
 Text prompts are encoded into class-level textual prototypes.
-
-
 
 **Cross-Modal Alignment:**
 
-
-
 Computes similarities across all encoder pairs {(V₁,T₁), (V₁,T₂), (V₂,T₁), (V₂,T₂)}.
-
-
-
 Averages similarities to produce the final class logits.
-
-
 
 **Prediction \& Output:**
 
-
-
 Softmax applied over fused logits to compute class probabilities.
-
-
-
 Automatically generates confusion matrix, ROC curve, and a detailed metrics report.
-
-
-
-
-
-**Clone the Repository**
-
-
-git clone https://github.com/yourusername/HistoAlign.git
-
-cd HistoAlign
-
-
-
 
 **Configure Dataset Paths**
 
-
 DATA\_ROOT = r"D:\\Ain\\dataset1"
-
 OUT\_DIR = "./zeroshot\_results\_binary"
-
-
-
-
 
 **Run the Script**
 
-
 python plip\_binary\_zeroshot.py
-
-
-
-
 
 **Output Files**
 
@@ -416,14 +304,6 @@ python plip\_binary\_zeroshot.py
 **├── roc\_curve.png**
 
 **└── label\_map.json**
-
-
-
-
-
-
-
-
 
 ## Acknowledgments
 - **Open-Source Communities:** Thanks to the contributors of PyTorch, Hugging Face, and other libraries for their amazing work.
