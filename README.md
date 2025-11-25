@@ -152,6 +152,7 @@ Vision-Language Alignment] https://openaccess.thecvf.com/content/CVPR2024/papers
 - Huge scope for better weakly supervised and point supervised methods that get close to fully supervised performance using cheap labels.
   
   -**Research Ideas:**
+
 Develop a model that uses a few pixel level masks plus many slide level labels, and compare it directly with a fully supervised U-Net baseline.
 
 Design a MIL based method that uses only slide level tumor labels but still produces pixel level heatmaps that pathologists rate as clinically meaningful.
@@ -163,6 +164,7 @@ Propose a label noise modeling method that treats each pathologist as a noisy an
 - Strong need for domain generalization and test time adaptation so one model works reliably across labs
   
   -**Research Ideas:**
+
 Train a stain and scanner invariant representation using self supervised pretraining on multi center WSIs, then evaluate zero shot transfer to a new hospital.
 
 Implement a test time adaptation module that adjusts feature statistics on unlabeled slides from a new center and measure gain over no adaptation.
@@ -170,10 +172,12 @@ Implement a test time adaptation module that adjusts feature statistics on unlab
 Build a benchmark where one trains on center A and tests on centers B and C, then compare different domain generalization strategies on the same setup
   
 - **Vision language and foundation models for pathology:**
+
 - CLIP style models trained on real pathology images and pathology text are still very early.
 - Great opportunity to build and evaluate pathology specific vision language models for zero shot classification and segmentation, and to make their outputs more interpretable for pathologists
   
 -**Research Ideas:**
+
 Create a small pathology specific CLIP like model using WSIs plus text from pathology reports, and test zero shot tumor subtype classification.
 
 Explore prompt engineering for histology, for example compare simple labels (tumor, normal) versus richer prompts that include tissue type and grade.
