@@ -115,7 +115,7 @@ beddings to perform classification without explicit task-specific training.
 
 
 ### Project Documents
-- **Presentation:** [Project Presentation]
+- **Presentation:** [Project Presentation] (DL Presentation.pptx)
 - **Report:** [Project Report]
 
 ### Reference Paper
