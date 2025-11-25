@@ -178,28 +178,20 @@ Explore prompt engineering for histology, for example compare simple labels (tum
 Design a vision language system that highlights image regions while generating a short textual explanation and ask pathologists to rate usefulness and correctness.
   
 ### Problem vs. Ideation: Proposed Idea to Solve the Problems
-1. **Optimized Architecture:** Redesign the model architecture to improve efficiency and balance image quality with faster inference.
-2. **Advanced Loss Functions:** Integrate novel loss functions (e.g., perceptual loss) to better capture artistic nuances and structural details.
-3. **Enhanced Data Augmentation:** Implement sophisticated data augmentation strategies to improve the model’s robustness and reduce overfitting.
 
-### Proposed Solution:  
+**HistoAlign:** Binary Zero-Shot Histopathology Classification 
 
-\# HistoAlign: Binary Zero-Shot Histopathology Classification 
-
-\*\*HistoAlign\*\* is a dual-encoder zero-shot learning framework for binary classification of breast histopathology images using the \*\*PLIP\*\* model.  
+HistoAlign is a dual-encoder zero-shot learning framework for binary classification of breast histopathology images using the PLIP and CLIP models.  
 
 The framework performs \*benign vs. malignant\* classification in a pure zero-shot setting and runs entirely on \*\*CPU\*\*, making it accessible and reproducible for researchers without GPU resources.
 
-\## 🚀 **Overview**
+**Overview**
 
 Histopathological image analysis traditionally relies on large, annotated datasets and model fine-tuning.  
-
 \*\*HistoAlign\*\* addresses this limitation by using a dual-encoder system that aligns visual and textual features through a many-to-many cross-modal fusion strategy.  
-
 It leverages pathology-specific and general vision encoders to capture both domain-aware and generalizable representations for robust zero-shot classification.
 
-
-\## 🧩 **Key Features**
+ **Key Features**
 
 \- \*\*Dual-Encoder Design:\*\* Integrates PLIP (pathology-aware) and CLIP (general-purpose) encoders.  
 
@@ -212,7 +204,7 @@ It leverages pathology-specific and general vision encoders to capture both doma
 
 
 ## Project Technicalities
-\## ⚙️ **System Requirements**
+**System Requirements**
 
 | Component | Specification |
 
@@ -225,7 +217,7 @@ It leverages pathology-specific and general vision encoders to capture both doma
 | \*\*GPU\*\* | Not required |
 | \*\*Storage\*\* | 10 GB free space |
 
-\### 📦 **Required Libraries**
+**Required Libraries**
 
 Install all dependencies before running:
 
@@ -234,32 +226,7 @@ pip install torch torchvision torchaudio
 pip install transformers==4.46.3
 pip install pandas numpy scikit-learn matplotlib tqdm pillow
 
-\### **Dataset Structure**
-
-
-│
-
-├── 8863  (benign)
-
-├── 8864  (benign)
-
-├── 8865  (malignant)
-
-├── 8867  (malignant)
-
-├── 8913  (benign)
-
-├── 8914  (benign)
-
-├── 8916  (malignant)
-
-├── 8917  (malignant)
-
-├── 8918  (malignant)
-
-└── 8950  (benign)
-
- **Model Workflow**
+**Model Workflow:**
 
 1. **Input Stage:**
 
@@ -281,29 +248,6 @@ Averages similarities to produce the final class logits.
 
 Softmax applied over fused logits to compute class probabilities.
 Automatically generates confusion matrix, ROC curve, and a detailed metrics report.
-
-**Configure Dataset Paths**
-
-DATA\_ROOT = r"D:\\Ain\\dataset1"
-OUT\_DIR = "./zeroshot\_results\_binary"
-
-**Run the Script**
-
-python plip\_binary\_zeroshot.py
-
-**Output Files**
-
-**zeroshot\_results\_binary/**
-
-**├── predictions.csv**
-
-**├── report.txt**
-
-**├── confusion\_matrix.png**
-
-**├── roc\_curve.png**
-
-**└── label\_map.json**
 
 ## Acknowledgments
 - **Open-Source Communities:** Thanks to the contributors of PyTorch, Hugging Face, and other libraries for their amazing work.
