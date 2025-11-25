@@ -154,7 +154,7 @@ Vision-Language Alignment] https://openaccess.thecvf.com/content/CVPR2024/papers
 - **Weak and noisy labels instead of perfect annotations:**
 - Pixel level masks for nuclei, glands, tumor regions are rare and expensive.
 - Huge scope for better weakly supervised and point supervised methods that get close to fully supervised performance using cheap labels.
-  **Research Ideas:**
+  -**Research Ideas:**
 Develop a model that uses a few pixel level masks plus many slide level labels, and compare it directly with a fully supervised U-Net baseline.
 
 Design a MIL based method that uses only slide level tumor labels but still produces pixel level heatmaps that pathologists rate as clinically meaningful.
@@ -164,7 +164,7 @@ Propose a label noise modeling method that treats each pathologist as a noisy an
 - **Poor generalization across hospitals and scanners:**
 - Models often drop in performance when moved from one center or stain protocol to another.
 - Strong need for domain generalization and test time adaptation so one model works reliably across labs
-  **Research Ideas:**
+  -**Research Ideas:**
 Train a stain and scanner invariant representation using self supervised pretraining on multi center WSIs, then evaluate zero shot transfer to a new hospital.
 
 Implement a test time adaptation module that adjusts feature statistics on unlabeled slides from a new center and measure gain over no adaptation.
@@ -174,7 +174,7 @@ Build a benchmark where one trains on center A and tests on centers B and C, the
 - **Vision language and foundation models for pathology:**
 - CLIP style models trained on real pathology images and pathology text are still very early.
 - Great opportunity to build and evaluate pathology specific vision language models for zero shot classification and segmentation, and to make their outputs more interpretable for pathologists
-**Research Ideas:**
+-**Research Ideas:**
 Create a small pathology specific CLIP like model using WSIs plus text from pathology reports, and test zero shot tumor subtype classification.
 
 Explore prompt engineering for histology, for example compare simple labels (tumor, normal) versus richer prompts that include tissue type and grade.
@@ -187,13 +187,240 @@ Design a vision language system that highlights image regions while generating a
 3. **Enhanced Data Augmentation:** Implement sophisticated data augmentation strategies to improve the model’s robustness and reduce overfitting.
 
 ### Proposed Solution:  Future work will focus on addressing
-these challenges through adaptive prompt optimization, stain-
-invariant visual pretraining, and the integration of few-shot or
-weakly supervised fine-tuning mechanisms to reduce domain
-bias. Extending the framework to multi-class classification
-and cross-dataset generalization tasks will also be explored to
-enhance the clinical applicability of vision–language models
-in digital pathology.
+
+\# HistoAlign: Binary Zero-Shot Histopathology Classification (CPU Version)
+
+
+
+\*\*HistoAlign\*\* is a dual-encoder zero-shot learning framework for binary classification of breast histopathology images using the \*\*PLIP\*\* model.  
+
+The framework performs \*benign vs. malignant\* classification in a pure zero-shot setting and runs entirely on \*\*CPU\*\*, making it accessible and reproducible for researchers without GPU resources.
+
+
+
+---
+
+
+
+\## 🚀 **Overview**
+
+
+
+Histopathological image analysis traditionally relies on large, annotated datasets and model fine-tuning.  
+
+\*\*HistoAlign\*\* addresses this limitation by using a dual-encoder system that aligns visual and textual features through a many-to-many cross-modal fusion strategy.  
+
+It leverages pathology-specific and general vision encoders to capture both domain-aware and generalizable representations for robust zero-shot classification.
+
+
+
+---
+
+
+
+\## 🧩 **Key Features**
+
+
+
+\- \*\*Dual-Encoder Design:\*\* Integrates PLIP (pathology-aware) and CLIP (general-purpose) encoders.  
+
+\- \*\*Many-to-Many Alignment:\*\* Fuses all visual and textual embedding pairs for enhanced semantic alignment.  
+
+\- \*\*Clinical Prompt Engineering:\*\* Utilizes text templates inspired by diagnostic language used in pathology reports.  
+
+\- \*\*CPU Compatibility:\*\* Fully optimized for CPU-only systems.  
+
+\- \*\*Comprehensive Evaluation:\*\* Automatically computes metrics, ROC-AUC, and visual outputs (confusion matrix, ROC curve).
+
+
+
+---
+
+
+
+\## ⚙️ **System Requirements**
+
+
+
+| Component | Specification |
+
+|------------|---------------|
+
+| \*\*Operating System\*\* | Windows 10/11, Ubuntu 20.04+, macOS |
+
+| \*\*Python Version\*\* | ≥ 3.8 |
+
+| \*\*Processor\*\* | Intel i5 / AMD Ryzen 5 or higher |
+
+| \*\*RAM\*\* | 16 GB recommended |
+
+| \*\*GPU\*\* | Not required |
+
+| \*\*Storage\*\* | 10 GB free space |
+
+
+
+\### 📦 Required Libraries
+
+Install all dependencies before running:
+
+```bash
+
+pip install torch torchvision torchaudio
+
+pip install transformers==4.46.3
+
+pip install pandas numpy scikit-learn matplotlib tqdm pillow
+
+
+
+
+
+
+
+
+
+
+
+**Dataset Structure**
+
+D:\\Ain\\dataset1
+
+│
+
+├── 8863  (benign)
+
+├── 8864  (benign)
+
+├── 8865  (malignant)
+
+├── 8867  (malignant)
+
+├── 8913  (benign)
+
+├── 8914  (benign)
+
+├── 8916  (malignant)
+
+├── 8917  (malignant)
+
+├── 8918  (malignant)
+
+└── 8950  (benign)
+
+
+
+
+
+
+ **Model Workflow**
+
+
+
+1. **Input Stage:**
+
+
+
+Breast histopathology images (BreakHis 10-folder subset).
+
+
+
+Textual prompts describing benign and malignant morphology.
+
+
+
+2\. **Feature Encoding:**
+
+
+
+PLIP extracts pathology-specific visual features.
+
+
+
+CLIP provides general visual–semantic representations.
+
+
+
+Text prompts are encoded into class-level textual prototypes.
+
+
+
+**Cross-Modal Alignment:**
+
+
+
+Computes similarities across all encoder pairs {(V₁,T₁), (V₁,T₂), (V₂,T₁), (V₂,T₂)}.
+
+
+
+Averages similarities to produce the final class logits.
+
+
+
+**Prediction \& Output:**
+
+
+
+Softmax applied over fused logits to compute class probabilities.
+
+
+
+Automatically generates confusion matrix, ROC curve, and a detailed metrics report.
+
+
+
+
+
+**Clone the Repository**
+
+
+git clone https://github.com/yourusername/HistoAlign.git
+
+cd HistoAlign
+
+
+
+
+**Configure Dataset Paths**
+
+
+DATA\_ROOT = r"D:\\Ain\\dataset1"
+
+OUT\_DIR = "./zeroshot\_results\_binary"
+
+
+
+
+
+**Run the Script**
+
+
+python plip\_binary\_zeroshot.py
+
+
+
+
+
+**Output Files**
+
+**zeroshot\_results\_binary/**
+
+**├── predictions.csv**
+
+**├── report.txt**
+
+**├── confusion\_matrix.png**
+
+**├── roc\_curve.png**
+
+**└── label\_map.json**
+
+
+
+
+
+
+
 
 
 ## Acknowledgments
