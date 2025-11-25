@@ -150,6 +150,7 @@ Vision-Language Alignment] https://openaccess.thecvf.com/content/CVPR2024/papers
 - **Weak and noisy labels instead of perfect annotations:**
 - Pixel level masks for nuclei, glands, tumor regions are rare and expensive.
 - Huge scope for better weakly supervised and point supervised methods that get close to fully supervised performance using cheap labels.
+  
   -**Research Ideas:**
 Develop a model that uses a few pixel level masks plus many slide level labels, and compare it directly with a fully supervised U-Net baseline.
 
@@ -160,6 +161,7 @@ Propose a label noise modeling method that treats each pathologist as a noisy an
 - **Poor generalization across hospitals and scanners:**
 - Models often drop in performance when moved from one center or stain protocol to another.
 - Strong need for domain generalization and test time adaptation so one model works reliably across labs
+  
   -**Research Ideas:**
 Train a stain and scanner invariant representation using self supervised pretraining on multi center WSIs, then evaluate zero shot transfer to a new hospital.
 
@@ -170,6 +172,7 @@ Build a benchmark where one trains on center A and tests on centers B and C, the
 - **Vision language and foundation models for pathology:**
 - CLIP style models trained on real pathology images and pathology text are still very early.
 - Great opportunity to build and evaluate pathology specific vision language models for zero shot classification and segmentation, and to make their outputs more interpretable for pathologists
+  
 -**Research Ideas:**
 Create a small pathology specific CLIP like model using WSIs plus text from pathology reports, and test zero shot tumor subtype classification.
 
@@ -193,14 +196,15 @@ It leverages pathology-specific and general vision encoders to capture both doma
 
  **Key Features**
 
-\- \*\*Dual-Encoder Design:\*\* Integrates PLIP (pathology-aware) and CLIP (general-purpose) encoders.  
+**Dual-Encoder Design:** Integrates PLIP (pathology-aware) and CLIP (general-purpose) encoders.  
 
-\- \*\*Many-to-Many Alignment:\*\* Fuses all visual and textual embedding pairs for enhanced semantic alignment.  
+**Many-to-Many Alignment:** Fuses all visual and textual embedding pairs for enhanced semantic alignment.  
 
-\- \*\*Clinical Prompt Engineering:\*\* Utilizes text templates inspired by diagnostic language used in pathology reports.  
-\- \*\*CPU Compatibility:\*\* Fully optimized for CPU-only systems.  
+**Clinical Prompt Engineering:** Utilizes text templates inspired by diagnostic language used in pathology reports.  
 
-\- \*\*Comprehensive Evaluation:\*\* Automatically computes metrics, ROC-AUC, and visual outputs (confusion matrix, ROC curve).
+**CPU Compatibility:** Fully optimized for CPU-only systems.  
+
+**Comprehensive Evaluation:** Automatically computes metrics, ROC-AUC, and visual outputs (confusion matrix, ROC curve).
 
 
 ## Project Technicalities
@@ -226,25 +230,25 @@ pip install torch torchvision torchaudio
 pip install transformers==4.46.3
 pip install pandas numpy scikit-learn matplotlib tqdm pillow
 
-**Model Workflow:**
+**Model Workflow**
 
 1. **Input Stage:**
 
 Breast histopathology images (BreakHis 10-folder subset).
 Textual prompts describing benign and malignant morphology.
 
-2\. **Feature Encoding:**
+2. **Feature Encoding:**
 
 PLIP extracts pathology-specific visual features.
 CLIP provides general visual–semantic representations.
 Text prompts are encoded into class-level textual prototypes.
 
-**Cross-Modal Alignment:**
+3. **Cross-Modal Alignment:**
 
 Computes similarities across all encoder pairs {(V₁,T₁), (V₁,T₂), (V₂,T₁), (V₂,T₂)}.
 Averages similarities to produce the final class logits.
 
-**Prediction \& Output:**
+4. **Prediction \& Output:**
 
 Softmax applied over fused logits to compute class probabilities.
 Automatically generates confusion matrix, ROC curve, and a detailed metrics report.
