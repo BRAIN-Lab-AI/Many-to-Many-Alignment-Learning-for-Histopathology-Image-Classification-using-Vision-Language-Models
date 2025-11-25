@@ -1,4 +1,6 @@
-# Many-to-Many-Alignment-Learning-for-Histopathology-Image-Classification-using-Vision-Language-Models
+# HistoAlign: A Dual-Encoder Many-to-Many Alignment Framework for Zero-Shot Histopathology Classification
+
+
 
 ## Project Metadata
 ### Authors
