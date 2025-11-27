@@ -1,0 +1,284 @@
+#!/usr/bin/env python3
+# -*- coding: utf-8 -*-
+
+"""
+Binary zero-shot classification on 10 folders using PLIP.
+
+- Uses your 10 folders
+- Maps each folder -> binary label (benign/malignant)
+- Manual torchvision preprocessing (no channel issues)
+- Robust parsing of HF image size/crop config (always ints)
+- Optional TTA (flip/rotation)
+- Full metrics: accuracy, F1, ROC-AUC
+"""
+
+import os, json
+from pathlib import Path
+from typing import Dict, List, Tuple, Optional, Union
+import numpy as np
+import pandas as pd
+from PIL import Image, ImageFile
+ImageFile.LOAD_TRUNCATED_IMAGES = True
+
+import torch
+from torch.utils.data import Dataset, DataLoader
+import torchvision.transforms as T
+import torchvision.transforms.functional as TF
+from tqdm import tqdm
+from sklearn.metrics import accuracy_score, classification_report, confusion_matrix, roc_auc_score, roc_curve
+import matplotlib.pyplot as plt
+
+from transformers import CLIPModel, CLIPProcessor
+
+# ==========================
+# CONFIG
+# ==========================
+DATA_ROOT = r"D:\ARIC_Lab_Members\Ain\dataset1"
+OUT_DIR = "./zeroshot_results_binary"
+DEVICE = "cuda" if torch.cuda.is_available() else "cpu"
+MODEL_ID = "vinid/plip"
+BATCH_SIZE = 32
+NUM_WORKERS = 0
+ENABLE_TTA = True
+TARGET_LABELS = ["benign", "malignant"]
+
+# Folder → Label mapping (binary)
+BINARY_MAP: Dict[str, str] = {
+    "8863": "benign",
+    "8864": "benign",
+    "8865": "malignant",
+    "8867": "malignant",
+    "8913": "benign",
+    "8914": "benign",
+    "8916": "malignant",
+    "8917": "malignant",
+    "8918": "malignant",
+    "8950": "benign",
+}
+
+PROMPTS_PER_LABEL = {
+    "benign": [
+        "H&E breast histology showing benign lesion.",
+        "Breast histopathology (H&E): benign tissue, no malignancy.",
+        "Microscopic image of breast tissue (H&E), benign features.",
+        "Breast biopsy photomicrograph (H&E): non-malignant morphology.",
+        "Hematoxylin and eosin breast slide consistent with benign pathology.",
+    ],
+    "malignant": [
+        "H&E breast histology showing malignant carcinoma.",
+        "Breast histopathology (H&E): invasive carcinoma, malignant features.",
+        "Microscopic breast tissue (H&E) with malignant tumor cells.",
+        "Breast biopsy photomicrograph (H&E): malignant morphology consistent with carcinoma.",
+        "Hematoxylin and eosin breast slide consistent with malignancy.",
+    ],
+}
+
+# ==========================
+# Helpers
+# ==========================
+def ensure_dir(p: Path):
+    p.mkdir(parents=True, exist_ok=True)
+
+def l2_normalize(x: torch.Tensor, eps: float = 1e-12):
+    return x / (x.norm(dim=-1, keepdim=True) + eps)
+
+def _to_int_size(val: Union[int, float, dict, tuple, list], fallback: int = 224) -> int:
+    """
+    Coerce HuggingFace image processor 'size'/'crop_size' into a single int.
+    Handles:
+      - int/float -> int
+      - dict: {'shortest_edge': N} or {'height': H, 'width': W}
+      - tuple/list: (H, W) or [H, W] -> use min(H, W)
+    """
+    if isinstance(val, (int, np.integer)):
+        return int(val)
+    if isinstance(val, float):
+        return int(round(val))
+    if isinstance(val, dict):
+        if "shortest_edge" in val:
+            return int(val["shortest_edge"])
+        if "height" in val and "width" in val:
+            h, w = int(val["height"]), int(val["width"])
+            return min(h, w)
+        # any other dict shape -> fallback
+        return int(fallback)
+    if isinstance(val, (tuple, list)) and len(val) >= 1:
+        # pick the smallest positive dimension
+        nums = [int(x) for x in val if isinstance(x, (int, float, np.integer))]
+        return int(min(nums)) if nums else int(fallback)
+    # unknown type
+    return int(fallback)
+
+# ==========================
+# Dataset
+# ==========================
+class BinaryFolderDataset(Dataset):
+    def __init__(self, root: str, binary_map: Dict[str, str], exts=(".png",".jpg",".jpeg",".tif",".tiff",".bmp")):
+        self.root = Path(root)
+        self.folders = [f for f in sorted(os.listdir(self.root)) if (self.root/f).is_dir() and f in binary_map]
+        if not self.folders:
+            raise RuntimeError("No matching folders found in BINARY_MAP.")
+        name_to_idx = {TARGET_LABELS[i]: i for i in range(2)}
+        self.samples = []
+        for f in self.folders:
+            lab = binary_map[f].strip().lower()
+            if lab not in name_to_idx:
+                raise RuntimeError(f"BINARY_MAP['{f}']='{lab}' not in {TARGET_LABELS}")
+            y = name_to_idx[lab]
+            for g in (self.root/f).rglob("*"):
+                if g.is_file() and g.suffix.lower() in exts:
+                    self.samples.append((str(g), y, f))
+        if not self.samples:
+            raise RuntimeError(f"No images found in mapped folders: {self.folders}")
+        self.idx_to_label = {i: lab for i, lab in enumerate(TARGET_LABELS)}
+    def __len__(self): return len(self.samples)
+    def __getitem__(self, idx):
+        path, y, folder = self.samples[idx]
+        img = Image.open(path)
+        if getattr(img, "n_frames", 1) > 1: img.seek(0)
+        if img.mode != "RGB": img = img.convert("RGB")
+        return img, int(y), path, folder
+
+def collate_fn(batch):
+    imgs, ys, paths, folders = zip(*batch)
+    return list(imgs), torch.tensor(ys, dtype=torch.long), list(paths), list(folders)
+
+# ==========================
+# PLIP encoder (manual preprocessing)
+# ==========================
+class PLIPEncoder:
+    def __init__(self, model_id: str, device: str):
+        self.model = CLIPModel.from_pretrained(model_id)
+        self.processor = CLIPProcessor.from_pretrained(model_id)
+        self.device = device
+        self.model.to(device).eval()
+
+        ip = self.processor.image_processor
+        # Robust coercion to ints
+        resize_short = _to_int_size(getattr(ip, "size", 224), 224)
+        crop_size    = _to_int_size(getattr(ip, "crop_size", 224), 224)
+
+        mean = getattr(ip, "image_mean", [0.48145466, 0.4578275, 0.40821073])
+        std  = getattr(ip, "image_std",  [0.26862954, 0.26130258, 0.27577711])
+        # Guarantee 3-length lists
+        if not (isinstance(mean, (list, tuple)) and len(mean) == 3): mean = [0.48145466, 0.4578275, 0.40821073]
+        if not (isinstance(std,  (list, tuple)) and len(std)  == 3): std  = [0.26862954, 0.26130258, 0.27577711]
+
+        self.tx = T.Compose([
+            T.Resize(resize_short, interpolation=T.InterpolationMode.BICUBIC),
+            T.CenterCrop(crop_size),
+            T.ToTensor(),
+            T.Normalize(mean=mean, std=std),
+        ])
+
+    @torch.no_grad()
+    def encode_images(self, imgs: List[Image.Image]):
+        tensors = [self.tx(im if im.mode == "RGB" else im.convert("RGB")) for im in imgs]
+        x = torch.stack(tensors).to(self.device)
+        feats = self.model.get_image_features(pixel_values=x)
+        return l2_normalize(feats.float())
+
+    @torch.no_grad()
+    def encode_text(self, texts: List[str]):
+        enc = self.processor(text=texts, padding=True, return_tensors="pt")
+        enc = {k: v.to(self.device) for k, v in enc.items()}
+        feats = self.model.get_text_features(**enc)
+        return l2_normalize(feats.float())
+
+# ==========================
+# Text embeddings for two labels
+# ==========================
+def build_text_embeds(enc: PLIPEncoder) -> Tuple[torch.Tensor, List[str]]:
+    embs = []
+    for lab in TARGET_LABELS:
+        e = enc.encode_text(PROMPTS_PER_LABEL[lab])
+        embs.append(e.mean(dim=0, keepdim=True))
+    T_emb = l2_normalize(torch.cat(embs, dim=0)).to(DEVICE)
+    return T_emb, TARGET_LABELS
+
+# ==========================
+# Evaluation + plots
+# ==========================
+def evaluate_binary(probs, y_true, idx_to_label, paths, folders, out_dir):
+    y_pred = probs.argmax(1)
+    acc = accuracy_score(y_true, y_pred)
+    report = classification_report(y_true, y_pred, target_names=list(idx_to_label.values()), digits=4)
+    cm = confusion_matrix(y_true, y_pred)
+    plt.figure(figsize=(6,5))
+    plt.imshow(cm, interpolation="nearest")
+    plt.title("Confusion Matrix"); plt.colorbar()
+    plt.xticks(range(2), idx_to_label.values()); plt.yticks(range(2), idx_to_label.values())
+    plt.xlabel("Predicted"); plt.ylabel("True"); plt.tight_layout()
+    plt.savefig(out_dir/"confusion_matrix.png", dpi=200); plt.close()
+    try:
+        auc = roc_auc_score(y_true, probs[:,1])
+        fpr,tpr,_=roc_curve(y_true,probs[:,1])
+        plt.figure(figsize=(6,5))
+        plt.plot(fpr,tpr); plt.plot([0,1],[0,1],'--')
+        plt.xlabel("False Positive Rate"); plt.ylabel("True Positive Rate")
+        plt.title(f"ROC (AUC={auc:.3f})"); plt.tight_layout()
+        plt.savefig(out_dir/"roc_curve.png",dpi=200); plt.close()
+    except Exception:
+        auc=float("nan")
+    rows=[{"path":p,"folder":f,"true":idx_to_label[int(y_true[i])],"pred":idx_to_label[int(y_pred[i])],
+           "prob_benign":float(probs[i,0]),"prob_malignant":float(probs[i,1])}
+          for i,(p,f) in enumerate(zip(paths,folders))]
+    pd.DataFrame(rows).to_csv(out_dir/"predictions.csv",index=False)
+    with open(out_dir/"report.txt","w") as f:
+        f.write(f"Accuracy: {acc:.4f}\nAUC: {auc:.4f}\n\n"+report)
+    print(f"\nAccuracy: {acc*100:.2f}%  AUC: {auc:.4f}")
+    print(report)
+
+# ==========================
+# MAIN
+# ==========================
+def main():
+    out_dir = Path(OUT_DIR)
+    out_dir.mkdir(parents=True, exist_ok=True)
+
+    ds = BinaryFolderDataset(DATA_ROOT, BINARY_MAP)
+    print(f"Images: {len(ds)}  Folders: {sorted(BINARY_MAP.keys())}")
+    dl = DataLoader(ds, batch_size=BATCH_SIZE, shuffle=False,
+                    num_workers=NUM_WORKERS, collate_fn=collate_fn,
+                    pin_memory=(DEVICE == 'cuda'))
+
+    enc = PLIPEncoder(MODEL_ID, DEVICE)
+    T_emb, label_order = build_text_embeds(enc)
+
+    TTA_FUNCS = [
+        (lambda im: im),
+        (lambda im: TF.hflip(im)),
+        (lambda im: TF.vflip(im)),
+        (lambda im: TF.rotate(im, 90)),
+        (lambda im: TF.rotate(im, 180)),
+    ] if ENABLE_TTA else [(lambda im: im)]
+
+    all_probs, all_y, paths, folders = [], [], [], []
+
+    with torch.no_grad():
+        for imgs, ys, pths, flds in tqdm(dl, desc="Infer (Binary zero-shot with PLIP)"):
+            imgs = [im if im.mode == "RGB" else im.convert("RGB") for im in imgs]
+            feat_sum = None
+            for tf in TTA_FUNCS:
+                aug = [tf(im) for im in imgs]
+                emb = enc.encode_images(aug)
+                feat_sum = emb if feat_sum is None else feat_sum + emb
+            V = l2_normalize(feat_sum / len(TTA_FUNCS))
+            logits = V @ T_emb.T
+            probs = torch.softmax(logits, dim=-1).cpu().numpy()
+            all_probs.append(probs)
+            all_y.append(ys.numpy())
+            paths.extend(pths)
+            folders.extend(flds)
+
+    probs = np.concatenate(all_probs, axis=0)
+    y_true = np.concatenate(all_y, axis=0)
+
+    with open(out_dir/"label_map.json","w") as f:
+        json.dump({i:l for i,l in enumerate(label_order)}, f)
+
+    evaluate_binary(probs, y_true, ds.idx_to_label, paths, folders, out_dir)
+    print(f"\nResults saved to {out_dir.resolve()}")
+
+if __name__=="__main__":
+    main()

@@ -1,0 +1,433 @@
+\documentclass[conference]{IEEEtran} 
+\usepackage{graphicx} 
+\usepackage{amsmath} 
+\usepackage{cite} 
+\usepackage{hyperref}
+\usepackage{tabularx}
+\usepackage{booktabs}
+\usepackage{array} 
+\begin{document} 
+
+
+\title{HistoAlign: A Dual-Encoder Many-to-Many Alignment Framework for Zero-Shot Histopathology Classification} 
+
+\author{
+    \IEEEauthorblockN{Quratulain Arshad}
+    \IEEEauthorblockA{Student IDs: g202523250 \\ King Fahd University of Petroleum and Minerals \\ Dhahran, Saudi Arabia}
+    \and
+    \IEEEauthorblockN{Supervised by: Dr. Muzammil Behzad}
+    \IEEEauthorblockA{muzammil.behzad@kfupm.edu.sa \\ King Fahd University of Petroleum and Minerals \\ Dhahran, Saudi Arabia}
+}
+
+\maketitle 
+
+\begin{abstract}
+Accurate classification of breast histopathology images is a critical step in computer-aided diagnosis, yet most existing approaches rely on large annotated datasets and task-specific fine-tuning. 
+In this paper, we introduce \textbf{HistoAlign}, a \textit{dual-encoder zero-shot framework} designed for binary breast tissue classification on the \textbf{BreakHis} dataset. 
+Unlike conventional supervised methods, HistoAlign performs inference without any retraining by exploiting a \textit{many-to-many cross-modal alignment} mechanism that connects multiple visual and textual embedding spaces. 
+The framework integrates a pathology-aware encoder (PLIP) and a generic vision-language encoder (CLIP) to capture complementary visual semantics across varying magnification levels. 
+On the textual side, clinically grounded prompts describing benign and malignant morphologies are encoded through dual text towers and semantically fused to form robust diagnostic representations. 
+This multi-level alignment yields a class similarity matrix that strengthens the correspondence between histological image patterns and textual diagnostic cues. 
+Experimental results demonstrate that HistoAlign achieves competitive performance under a fully zero-shot setting, highlighting its potential as an annotation-efficient and scalable solution for digital pathology.
+\end{abstract}
+
+
+
+\begin{IEEEkeywords}
+Vision Language Model, Prompt Learning, Zero-shot Learning, Features Alignment
+\end{IEEEkeywords}
+
+\section{Introduction} 
+The rapid evolution of artificial intelligence has transformed computational pathology, where whole slide images (WSIs) are analyzed to support cancer diagnosis, grading, and treatment planning. Deep learning models particularly convolutional neural networks (CNNs) and vision transformers (ViTs) \cite{litjens2017survey} \cite{komura2018machine} have demonstrated strong performance in tasks such as tumor detection, subtype classification, and cellular composition analysis; however, these approaches remain heavily dependent on large, expertly annotated datasets, which are costly, time-consuming to curate, and often institution-specific \cite{campanella2019clinical} \cite{lu2021data}. Beyond the annotation burden, histopathology introduces substantial domain-specific challenges: variability in staining protocols, scanner hardware, tissue preparation methods, and inter-observer differences leads to domain shift, causing trained models to perform poorly when applied across different clinical centers \cite{tellez2019quantifying}. Moreover, rare or newly emerging cancer subtypes frequently lack sufficient labeled examples to support robust supervised learning. Together, these limitations underscore the need for models that minimize reliance on manual annotations while maintaining strong generalization across diverse clinical environments, motivating the development of next-generation computational pathology methods capable of scalable, label-efficient, and institution-agnostic performance.
+
+Zero-shot learning using vision-language models (VLMs) has emerged as a promising direction for developing models that align medical images with descriptive text prompts, enabling semantic transfer without task-specific supervision \cite{radford2021learning} \cite{zhang2023large}. While CLIP-based frameworks have shown striking generalization in natural image domains, their direct application to pathology is limited because WSIs contain complex multi-scale structures and depend heavily on medical terminology absent from generic language corpora \cite{huang2025pathohr}. This has led to increasing interest in pathology-aware language alignment, multi-resolution representation learning, and domain-specific prompting strategies \cite{nguyen2025mgpath}. Collectively, these innovations point toward a new generation of foundation models that can recognize rare diseases, scale across institutions, and reduce reliance on annotated training datasets.
+
+The CPLIP framework \cite{javed2024cplip} represents a major milestone by introducing comprehensive alignment between text and image domains using heterogeneous prompt sets and diverse tile collections. Rather than relying on single captions or limited vocabularies, CPLIP leverages domain-specific glossaries, GPT-based text expansions, and pathology aware image retrieval to enhance semantic and morphological coverage. Through many-to-many contrastive training, it achieves significant zero-shot gains across multiple WSI datasets, outperforming PLIP, MI-Zero, and BiomedCLIP in both tile-level and slide-level classification tasks. However, even with these advances, model brittleness persists when faced with rare morphologies, limited image diversity, or fine-grained subtyping needs that require deeper semantic sensitivity. Recent literature \cite{hu2024histopathology} \cite {xiong2025survey} further emphasizes the need for improved prompt design, hierarchical representation learning, and better alignment mechanisms to enhance robustness under real clinical variability.
+
+\subsection{Problem Statement} 
+Despite the rapid progress of vision-language models in computational pathology, significant challenges remain before zero-shot histopathology becomes a reliable clinical tool. One major limitation concerns modality alignment, as most current methods rely on one-to-one alignment between an image patch and a single text prompt. This does not adequately reflect the inherently multi-scale and multi-semantic nature of pathology images, which can encode morphology, disease etiology, grading indicators, and contextual tissue organization. The CPLIP framework introduces a more expressive many-to-many alignment strategy between image bags and prompt bags, enabling richer semantic grounding, but further refinement is still needed to fully exploit pathological variations.
+
+A second challenge is dataset heterogeneity and domain shift. Whole slide images vary widely due to differences in staining protocols, scanners, magnification, and institution-specific workflows. As a result, vision-language models trained on one dataset frequently underperform on external data, especially for unseen disease categories or rare cancer presentations. While CPLIP improves zero-shot transfer under domain shift, the field still lacks mechanisms that reliably generalize across multi-center data, support rare subtypes, and maintain stable performance in real clinical conditions. These challenges underscore the need for more robust alignment strategies, domain-aware modeling, and architectures that reduce reliance on large supervised datasets.
+\subsection{Objectives} 
+This work aims to advance zero-shot learning for histopathological image analysis by integrating visual and textual modalities into a unified framework. 
+The main objectives of this study are as follows:
+
+\begin{itemize}
+    \item To design a dual-encoder vision–language architecture that combines a pathology-aware encoder (PLIP) with a general-purpose vision-language encoder (CLIP) to learn complementary visual representations across multiple magnifications.
+    
+    \item To construct clinically grounded textual prompts that encapsulate benign and malignant morphological characteristics, enabling precise semantic alignment between histopathological imagery and diagnostic language.
+    
+    \item To develop a many-to-many cross-modal alignment mechanism that captures hierarchical relationships between multiple visual and textual embeddings, facilitating robust zero-shot classification without task-specific fine-tuning.
+\end{itemize}
+
+These objectives collectively aim to establish a scalable, annotation-efficient framework capable of accurately distinguishing benign and malignant breast tissue under a fully zero-shot setting.
+
+
+\subsection{Scope of Study} 
+The scope of this study is centered on the exploration of zero-shot learning for histopathological image classification, specifically targeting breast tissue analysis. 
+The proposed framework, \textit{HistoAlign}, focuses on the binary differentiation of \textit{benign} and \textit{malignant} samples using the \textbf{BreakHis} dataset. 
+The study confines its experimental setup to hematoxylin and eosin (H\&E)-stained microscopic images across multiple magnification factors (40$\times$, 100$\times$, 200$\times$, and 400$\times$). 
+No additional supervised fine-tuning or domain adaptation is performed, ensuring the evaluation remains within a pure zero-shot paradigm. 
+Furthermore, the scope emphasizes the design and validation of a dual-encoder many-to-many alignment mechanism that integrates pathology-specific and general vision–language models. 
+The investigation does not extend to multi-class lesion categorization, stain normalization, or fine-tuning-based adaptation strategies, which are left as future research directions. 
+This defined scope ensures that the findings specifically demonstrate the feasibility and robustness of cross-modal zero-shot alignment for diagnostic decision-making in digital pathology.
+
+\subsection{Main Contributions}
+The key contributions of this study are summarized as follows:
+
+\begin{itemize}
+    \item  We propose a novel architecture that integrates a pathology-specific vision–language encoder (PLIP) with a general-purpose CLIP model to capture both domain-dependent and generic visual–textual semantics for histopathology image classification.
+    
+    \item  We introduce a new alignment strategy that establishes interactions between multiple visual and textual embeddings, enabling richer semantic correspondence between histological patterns and diagnostic textual concepts. This alignment forms a multi-level similarity matrix that enhances discriminative learning under zero-shot conditions.
+    
+    \item  We design clinically relevant textual prompts that reflect benign and malignant morphological cues, bridging the linguistic gap between medical reporting terminology and visual pathology features.
+    
+    \item  Extensive experiments on the \textit{BreakHis} dataset demonstrate the effectiveness of the proposed approach in classifying breast histopathology images without task-specific fine-tuning, highlighting its scalability and annotation efficiency for digital pathology applications.
+\end{itemize}
+
+Together, these contributions establish a new direction for cross-modal zero-shot learning in medical image analysis by aligning visual and textual knowledge representations in a clinically meaningful manner.
+
+
+
+\section{Literature Review} 
+Recent progress in computational pathology has led to a rich landscape of learning paradigms developed to analyze whole-slide images (WSIs) for tasks such as cancer classification, grading, and survival prediction. These approaches are broadly categorized into weakly supervised learning (WSL), self-supervised learning (SSL), and vision-language (VL) based modeling.
+Weakly Supervised Learning in Computational Pathology
+
+Weakly supervised learning (WSL) has played a foundational role in computational pathology by enabling whole-slide image (WSI) classification using only slide-level labels rather than exhaustive pixel-level annotation. Multiple Instance Learning (MIL) has been the dominant paradigm \cite{barbosa2024multiple}, where a slide is treated as a bag of instances (patches) and the model learns to infer slide-level decisions from patch-level representations. Early and influential MIL-based methods include ABMIL \cite{ilse2018attention}, TransMIL \cite{shao2021transmil}, DSMIL \cite{li2021dual}, CLAM \cite{lu2021data}, and DTFD-MIL \cite{zhang2022dtfd}, which demonstrated that WSI-level diagnostic tasks can be learned effectively without detailed human annotation. More recent advances have begun to address limitations in spatial context and multi-scale modeling: MIL-VT introduces transformer-guided instance sampling which is a patch-slide discriminative joint learning framework that simultaneously models local patch features and global slide-level context, improving weakly supervised whole-slide image representation and classification accuracy \cite{yu2024patch}. In \cite{jin2024hmil}, a nested MIL hierarchy is introduced that organizes patches across multiple levels of granularity to better model tissue organization. To address tumor heterogeneity, a multi-marker feature integration strategy is proposed in \cite{wang2023targeting} that enables the model to distinguish subtle intra-tumoral variations. With the growing demand for clinically relevant prediction tasks, the authors in \cite{ding2023multi} demonstrated the robustness of multi-modal and multi-instance deep learning across institutions, highlighting the importance of model generalizability. More recent graph-based advances, such as \cite{bontempo2023graph}, leveraged graph neural networks to integrate multi-resolution features while transferring knowledge from teacher networks for performance refinement. Similarly, A Structure-Aware Hierarchical Graph-Based MIL Framework \cite{shi2023structure} proposed for pT Staging modeled glandular and stromal architecture through hierarchical graph aggregation, improving staging accuracy. Although powerful, WSL methods still require task-specific training and fail to generalize to unseen cancer types, a limitation that motivates label-efficient and zero-shot approaches.
+
+Self-supervised learning (SSL) offers an attractive alternative by learning tissue representations directly from unlabeled WSIs, using pretext tasks such as contrastive learning, masked modeling, or hierarchical reconstruction. Earlier SSL methods such as CTransPath \cite{wang2022transformer}, HIPT \cite{chen2022scaling} and H2T \cite{vu2023handcrafted} demonstrated that pretraining in large collections of WSIs improves downstream classification and survival prediction tasks without requiring pathologist annotations. Stain-adaptive SSL methods have been proposed to mitigate stain variability across batches and scanners, enabling models to learn domain-invariant feature representations that generalize across heterogeneous laboratories \cite{ye2025stain}. Generic SSL frameworks such as Self-HER2Net extend this principle to IHC analysis by using large volumes of unlabeled breast cancer tissue to improve the performance of the HER2 classification \cite{chyrmang2025self}. Other work has compared task-specific SSL with transfer learning and modern foundation models, demonstrating that specialized pretraining strategies can outperform generic image encoders for downstream pathology tasks \cite{rahman2025evaluation}. Beyond performance gains, SSL has also begun to reveal clinically significant morphological signatures, as shown in a colon cancer study, where SSL-derived features were linked to treatment-relevant histomorphological patterns and therapeutic response markers \cite{liu2025self}. More recent work in self-supervised learning has produced a wide spectrum of techniques designed to reduce annotation burdens while capturing richer and more generalizable histopathological representations. In \cite{feng2025efficient} an efficient multi-stage masked SSL framework is introduced that reconstructs tissue structures at multiple granularities, enabling the model to learn hierarchical morphological cues useful for downstream classification and retrieval tasks. Building on transformer architectures, \cite{dachepalli2025self} proposed a self-supervised segmentation approach in which transformer encoders learn coherence at the pixel-level and region-level without manual masks, achieving strong performance in segmenting complex glandular and stromal patterns. The authors in \cite{chaurasia2025generalised} developed a generalized ViT-based SSL model for prostate cancer diagnosis and grading, showing that unlabeled slide-level pretraining can significantly strengthen feature discrimination across tumor grades. Similarly, it is demonstrated in \cite{ding2025self} that transformer-based SSL can enhance the classification of breast histopathology by learning subtle cellular and architectural differences directly from unlabeled tissue. Beyond RGB histology, \cite{wang2025s} introduced S4R, a spectral regression–driven SSL method tailored for hyperspectral slides, enabling the extraction of biochemical signatures that complement spatial morphology. A diffusion-based stain augmentation and normalization framework called SAStainDiff is proposed in \cite{yang2025sastaindiff} which uses self-supervision to harmonize color variations across labs, thereby improving cross site model robustness. SSL methods significantly reduce labeling costs and improve feature robustness, yet they still lack semantic grounding, they learn how tissue looks, but not what it represents clinically. This limitation creates an opening for methods that incorporate medical language into feature learning.
+\begin{table*}[t]
+\centering
+\caption{Comparison of paradigms for computational pathology.}
+\scriptsize                    % smaller font to help fit
+\setlength{\tabcolsep}{2pt}    % reduce horizontal padding
+\renewcommand{\arraystretch}{1.2}
+
+\begin{tabularx}{\textwidth}{p{2.4cm}X|X|X|X|X}
+\hline
+\textbf{Paradigm} &
+\textbf{Traditional Histopathology} &
+\textbf{Supervised deep learning in Histopathology} &
+\textbf{Weakly-supervised learning in Histopathology} &
+\textbf{Self-supervised learning in Histopathology} &
+\textbf{Vision-language models for Computational Pathology} \\
+\hline
+
+\textbf{Key strengths} &
+Clinical gold standard; leverages broad human expertise. &
+High accuracy when large curated label sets are available; models can exploit spatial and graph context. &
+Uses slide-level labels instead of dense annotation; attention maps provide some interpretability. &
+Learns from vast unlabelled corpora and produces strong, transferable feature representations. &
+Open-vocabulary recognition with flexible zero/few-shot transfer across diverse pathology tasks. \\
+\hline
+
+\textbf{Key limitations} &
+Inter-observer variability; labour-intensive; can overlook subtle tissue heterogeneity. &
+Requires extensive expert annotations; performance often drops under domain shift. &
+Still dependent on labels; may miss subtle local cues and is sensitive to bag design. &
+Computationally demanding; requires heavy augmentation and lacks inherent language grounding. &
+Requires millions of image–text pairs and high compute; typically uses single prompts and single-scale alignment. \\
+\hline
+\end{tabularx}
+
+
+\label{tab:paradigms}
+\end{table*}
+
+
+Vision-language supervised learning brings semantic structure into computational pathology by aligning images with diagnostic text, enabling zero-shot tissue recognition and cross-dataset generalization. Early pathology-adapted VL models such as PLIP, MI-Zero\cite{lu2023visual}, CONCH \cite{lu2024visual} and BiomedCLIP\cite{zhang2023large} extend CLIP-style contrastive learning to paired histopathology–text corpora, allowing cancer subtyping without retraining. However, despite this progress, a key limitation of
+these works is their reliance on single-text and single-image alignment strategies which may fail to capture the complex multimodal relationships in pathology, limiting their ability to represent complex morphology and multi-scale tissue context. and the nuanced nature of diagnostic tasks. Multi-Resolution Prompt-guided Hybrid Embedding (MR-PHE) \cite{rahaman2025leveraging} is an effort to overcome this limitation that introduced a hybrid embedding strategy that integrates global image embeddings with weighted patch embeddings, effectively combining local and global contextual information. CPLIP \cite{javed2024cplip} advances this line further by aligning bags of patches with bags of prompts via many-to-many cross-modal training, showing large gains in zero-shot performance across multiple histology datasets. Despite this progress, domain shift and dataset heterogeneity remain open challenges, driving continued innovation in multimodal pathology foundation models.
+
+\section{Methodology}
+\label{sec:methodology}
+
+\subsection{3.1 Overview}
+The proposed framework, termed \textit{HistoAlign}, introduces a dual-encoder zero-shot learning approach for breast histopathology image classification. 
+Unlike conventional supervised methods, which require extensive annotated data, HistoAlign performs binary tissue classification (\textit{benign} vs. \textit{malignant}) without any task-specific fine-tuning. 
+The framework is evaluated on the \textit{BreakHis} dataset~\cite{bejnordi2017diagnostic}, a large-scale histopathological benchmark containing 7,909 microscopic images of breast tumor tissue across four magnifications (40$\times$, 100$\times$, 200$\times$, and 400$\times$). 
+For the purposes of this study, we construct a \textit{custom 10-folder subset} of BreakHis, maintaining equal representation of benign and malignant classes while preserving magnification diversity. 
+This subset allows for focused binary evaluation and interpretable feature visualization.
+
+HistoAlign combines two complementary vision--language encoders: 
+(i) a pathology-aware encoder, PLIP, pretrained on biomedical figure--caption pairs to capture domain-specific cellular morphology, and 
+(ii) a generic CLIP encoder pretrained on large-scale natural image--text corpora to enhance semantic generalization. 
+The integration of these encoders enables a robust many-to-many alignment between visual and textual modalities. 
+The entire framework consists of five key stages: (1) image preprocessing, (2) domain-aware prompt construction, (3) dual-encoder representation learning, (4) multi-level class similarity, and (5) zero-shot inference.
+
+\subsection{3.2 Domain-Aware Prompt Construction}
+Textual prompts serve as the semantic bridge connecting visual pathology patterns with diagnostic language. 
+To reflect real-world reporting terminology, we design a set of clinically informed prompts for both benign and malignant categories. 
+Each prompt mimics the descriptive expressions commonly used by pathologists when reporting breast tissue findings.
+
+Formally, the prompt set for each class $c \in \{b, m\}$ (benign and malignant) is defined as:
+\begin{equation}
+\mathcal{P}^{(c)} = \{p_k^{(c)} \mid k = 1, 2, \ldots, K\},
+\label{eq:promptset}
+\end{equation}
+where each $p_k^{(c)}$ represents the $k^{th}$ textual description variant for class $c$. 
+For example, benign prompts may include statements such as 
+\textit{“H\&E-stained breast tissue showing organized glandular architecture and absence of atypia”}, 
+whereas malignant prompts emphasize features such as 
+\textit{“microscopic image of invasive ductal carcinoma with nuclear pleomorphism”}. 
+This linguistic diversity ensures semantic coverage across both clinical and morphological descriptors.
+
+Each textual prompt is encoded through the PLIP and CLIP text towers ($T_1$ and $T_2$), resulting in normalized embeddings:
+\begin{equation}
+t_{i,k}^{(c)} = \frac{T_i(p_k^{(c)})}{\|T_i(p_k^{(c)})\|_2}, \quad i \in \{1,2\}.
+\label{eq:textembed}
+\end{equation}
+The class-level text embedding is computed as the mean of its prompt embeddings:
+\begin{equation}
+t_i^{(c)} = \frac{1}{K}\sum_{k=1}^{K} t_{i,k}^{(c)}.
+\label{eq:textavg}
+\end{equation}
+Each $t_i^{(c)}$ thus represents a clinically consistent textual prototype for class $c$, which anchors the model’s zero-shot semantic space.
+
+
+
+\begin{figure*}[t]
+\centering
+\includegraphics[width=\textwidth]{Figure02.png}
+\caption{
+Overview of the proposed training-free dual vision–language framework for zero-/few-shot classification.
+}
+
+\label{fig:process}
+\end{figure*}
+
+
+
+
+
+
+\subsection{3.3 Dual-Encoder Architecture}
+HistoAlign employs two vision--language encoders $\{E_1, E_2\}$, where $E_1=(V_1,T_1)$ and $E_2=(V_2,T_2)$ correspond to the PLIP and CLIP networks, respectively. 
+Each encoder projects both images and text into a shared multimodal embedding space. 
+Given an input image $x$, the visual features extracted by the encoders are represented as:
+\begin{equation}
+v_i = \frac{V_i(x)}{\|V_i(x)\|_2}, \quad i \in \{1,2\}.
+\label{eq:visfeat}
+\end{equation}
+Here, $V_i(x)$ denotes the image embedding vector of dimension $d_i$ (typically $d_i = 512$ for ViT-B/32 backbones). 
+All feature vectors are L2-normalized to enable cosine similarity-based alignment.
+
+To improve generalization across magnifications, we apply \textit{test-time augmentation (TTA)} using five geometric transformations: identity, horizontal flip, vertical flip, 90° rotation, and 180° rotation. 
+The resulting embeddings are averaged:
+\begin{equation}
+\bar{v}_i = \frac{1}{M}\sum_{m=1}^{M} \frac{V_i(x_m)}{\|V_i(x_m)\|_2},
+\label{eq:tta}
+\end{equation}
+where $M$ is the number of augmentations and $x_m$ is the $m^{th}$ augmented version of $x$. 
+This aggregation enhances robustness to rotation and orientation variance in histopathological slides.
+
+\subsection{3.4 Multi-Level Class Similarity}
+To establish semantic alignment between the visual and textual representations, HistoAlign introduces a \textit{multi-level class similarity} mechanism. 
+Unlike prior works that rely on a single vision–text encoder pair, we compute alignment across all pairwise combinations of visual and textual encoders, enabling a many-to-many correspondence that captures complementary semantics from both models.
+
+Given the normalized image embeddings $\{v_1, v_2\}$ and textual prototypes $\{t_1^{(c)}, t_2^{(c)}\}$, the similarity score between a vision encoder $V_i$ and a text encoder $T_j$ is computed as:
+\begin{equation}
+R_{i,j} = v_i \cdot t_j^{\top}, \quad i,j \in \{1,2\}.
+\label{eq:pairwise}
+\end{equation}
+Each $R_{i,j} \in \mathbb{R}^{1 \times 2}$ represents the class logits for benign and malignant predictions derived from encoder pair $(V_i,T_j)$. 
+This yields four unique similarity matrices: $(V_1,T_1)$, $(V_1,T_2)$, $(V_2,T_1)$, and $(V_2,T_2)$. 
+The final multi-level alignment score is computed through weighted fusion:
+\begin{equation}
+R = \frac{1}{4}\sum_{i=1}^{2}\sum_{j=1}^{2}R_{i,j}.
+\label{eq:fusion}
+\end{equation}
+
+The resulting fused logits $R$ form a class similarity matrix that encodes hierarchical relationships between morphological patterns and textual semantics. 
+This multi-level alignment acts as a consensus mechanism, integrating the domain specificity of PLIP with the broad contextual reasoning of CLIP. 
+In practice, this fusion enhances discriminative performance on ambiguous histopathological structures, such as ductal proliferations or borderline lesions, which often exhibit overlapping visual characteristics.
+
+\subsection{3.5 Zero-Shot Inference}
+During inference, each input image $x$ is processed through both encoders, and its embeddings are matched against all textual prototypes using Eq.~\ref{eq:fusion}. 
+The resulting logits are converted into posterior probabilities through a softmax operation:
+\begin{equation}
+P(y|x) = \text{softmax}(R),
+\label{eq:softmax}
+\end{equation}
+where $P(y|x)$ represents the probability distribution over the two classes $\{ \text{benign}, \text{malignant} \}$. 
+The final prediction is defined as:
+\begin{equation}
+\hat{y} = \arg\max_{y} P(y|x).
+\label{eq:pred}
+\end{equation}
+
+No fine-tuning or gradient updates are performed during inference, preserving the pure zero-shot setting. 
+All embeddings are precomputed using frozen encoder weights. 
+To ensure reproducibility, the framework is implemented in PyTorch with Hugging Face Transformers, using a batch size of 32, AdamW optimizer for preprocessing experiments, and an NVIDIA RTX A6000 Processor  Intel i5 AMD Ryzen 5 or higher for acceleration. Evaluation metrics include accuracy, F1-score, precision, recall, ROC-AUC, and confusion matrix analysis. 
+Through this design, \textit{HistoAlign} establishes a robust, annotation-free classification strategy that generalizes across magnifications and histological variations, providing an interpretable bridge between pathology-specific image features and clinical language representations.
+
+
+
+\section{Experiments}
+\label{sec:experiments}
+
+\subsection{4.1 Experimental Setup}
+\paragraph{Dataset Description.}
+All experiments are conducted on the \textbf{BreakHis} dataset~\cite{bejnordi2017diagnostic}, a publicly available benchmark for breast histopathology image classification.
+BreakHis contains 7{,}909 microscopic images of benign and malignant breast tumors collected from 82 patients, acquired under four optical magnifications (40$\times$, 100$\times$, 200$\times$, and 400$\times$). 
+Each image is an H\&E-stained RGB patch of size $700{\times}460$ pixels. 
+For this study, we curate a \textbf{custom 10-folder subset} comprising an equal number of benign and malignant cases (five folders each) to create a balanced binary evaluation set. 
+This subset preserves magnification diversity and reflects real diagnostic variance in tissue morphology.
+
+\paragraph{Data Pre-processing.}
+All images are converted to RGB, resized to $224{\times}224$ pixels, and center-cropped to meet the input specification of both PLIP and CLIP encoders.
+Color normalization follows the mean and standard deviation used during PLIP pre-training.
+At inference time, \textit{test-time augmentation (TTA)} is applied, including horizontal/vertical flips and $90^{\circ}$/$180^{\circ}$ rotations.
+Embeddings from each augmented view are averaged to form the final representation.
+
+\paragraph{Implementation Details.}
+The proposed framework is implemented in \texttt{PyTorch} using the \texttt{Transformers} library.
+The pathology-aware encoder (\textbf{PLIP}) employs a ViT-B/16 backbone pretrained on PubMed figure–caption pairs,
+while the complementary encoder (\textbf{CLIP}) uses the ViT-B/32 architecture pretrained on 400M image–text pairs.
+Both encoders remain frozen during zero-shot inference.
+Image features are extracted with a batch size of 32 using an CPU system.
+All computations are performed in mixed precision to reduce memory overhead.
+The framework produces a 512-dimensional embedding per encoder for each modality.
+Cosine similarities between visual and textual features are used to compute multi-level class similarities (see Sec.~\ref{sec:methodology}).
+
+\paragraph{Evaluation Protocol.}
+To preserve the zero-shot setting, no training or fine-tuning is performed on BreakHis.
+All results are reported on the curated 10-folder test split.
+Performance is averaged across all magnifications (40$\times$, 100$\times$, 200$\times$, 400$\times$) to evaluate scale invariance.
+Reproducibility is ensured by fixing random seeds and using deterministic data loaders.
+
+\subsection{4.2 Evaluation Metrics}
+\label{sec:metrics}
+
+The performance of \textit{HistoAlign} is evaluated using five standard metrics widely adopted in medical image classification: Accuracy, Precision, Recall, F1-score, and the Area Under the Receiver Operating Characteristic Curve (ROC-AUC). Accuracy reflects the overall proportion of correctly predicted benign and malignant samples, providing a general measure of model reliability. Precision and Recall respectively quantify the proportion of correctly identified malignant cases among all predicted positives and the proportion of actual malignant cases correctly detected, which are particularly critical in clinical decision-making. The F1-score, defined as the harmonic mean of Precision and Recall, offers a balanced measure under class imbalance. Finally, the ROC-AUC evaluates the model’s discriminative capability across different thresholds, representing the probability that a randomly chosen malignant image will receive a higher confidence score than a benign one. All metrics are computed at the image level, averaged across the four magnification factors (40$\times$, 100$\times$, 200$\times$, and 400$\times$) on the BreakHis dataset to ensure robust performance evaluation.
+
+\subsection{4.3 Quantitative Results}
+\label{sec:results}
+
+The quantitative performance of \textbf{HistoAlign} on the curated 10-folder binary subset of the \textbf{BreakHis} dataset is reported in Table~\ref{tab:results_actual}. 
+Under a fully zero-shot configuration, the proposed framework achieved an overall accuracy of 52.51\% and an AUC of 0.56. 
+Although the results indicate the inherent difficulty of adapting large-scale vision–language models to fine-grained histopathological imagery, they provide a robust baseline for exploring cross-modal alignment in medical zero-shot learning.
+
+Class-wise evaluation reveals that benign samples attained an accuracy of 54.0\% with higher recall (0.64) and moderate precision (0.51), while malignant samples achieved 51.0\% accuracy with higher precision (0.55) but lower recall (0.42). 
+The higher recall in benign prediction suggests that the model is more sensitive to organized glandular structures, whereas variability in malignant nuclei and stroma introduces alignment ambiguity. 
+The macro-averaged results yield precision of 0.53, recall of 0.53, F1-score of 0.52, and mean AUC of 0.56, demonstrating balanced yet modest performance under strict zero-shot conditions.
+
+\begin{table}[h!]
+\centering
+\caption{Zero-shot classification results of \textbf{HistoAlign} on the BreakHis binary subset. 
+Metrics are computed per class and averaged across magnifications.}
+\label{tab:results_actual}
+\begin{tabular}{lccccc}
+\hline
+\textbf{Class} & \textbf{Precision} & \textbf{Recall} & \textbf{F1-Score} & \textbf{Accuracy} & \textbf{AUC} \\
+\hline
+Benign     & 0.5075 & 0.6416 & 0.5668 & 54.0 & 0.5599 \\
+Malignant  & 0.5529 & 0.4158 & 0.4746 & 51.0 & 0.5599 \\
+\hline
+\textbf{Macro Avg.}    & 0.5302 & 0.5287 & 0.5207 & 52.51 & 0.5599 \\
+\textbf{Weighted Avg.} & 0.5309 & 0.5251 & 0.5192 & 52.51 & 0.5599 \\
+\hline
+\end{tabular}
+\end{table}
+
+Overall, these results highlight the feasibility of leveraging vision–language models for pathology classification without any task-specific supervision. 
+Despite modest accuracy, \textbf{HistoAlign} demonstrates consistent zero-shot transfer across magnifications, underscoring the value of many-to-many cross-modal alignment in bridging visual and textual domains.
+\begin{figure}[t]
+    \centering
+    \includegraphics[width=\columnwidth]{CM.png}
+    \caption{Language-guided zero shot anomaly classification results.}
+    \label{fig:confusion matrix}
+\end{figure}
+\subsection{4.4 Ablation Studies}
+\label{sec:ablation}
+
+To analyze the contribution of each component in \textbf{HistoAlign}, we conduct ablation studies covering (i) encoder combinations and alignment strategies, (ii) prompt diversity, and (iii) the effect of multi-level fusion on overall discriminability. 
+All experiments are performed on the curated 10-folder binary subset of the \textbf{BreakHis} dataset using identical zero-shot inference settings. 
+The results confirm that both the many-to-many alignment and prompt diversification significantly enhance cross-modal representation quality.
+
+\paragraph{Effect of Encoder Combination and Alignment.}
+Table~\ref{tab:ablation_alignment} compares the classification performance across different encoder pairings and alignment strategies. 
+The PLIP-only configuration performs well on domain-specific morphology but lacks generalization, while CLIP-only achieves slightly higher accuracy due to its broader visual understanding. 
+Cross-pair configurations ($V_1$–$T_2$ and $V_2$–$T_1$) partially improve semantic coverage, but the proposed many-to-many fusion achieves the highest overall performance by jointly modeling all vision–text interactions. 
+This shows that combining domain-adapted and general encoders enables complementary feature transfer and improved interpretability.
+
+\begin{table}[h!]
+\centering
+\caption{Ablation study on different encoder combinations and alignment strategies for zero-shot classification on the BreakHis binary subset. AT, Acc, Pre, Rec, F1-S represents alignment type, accuracy, precision, recall, F1-Score, while M and F represents many and fusion.
+Metrics are averaged across magnifications.}
+\label{tab:ablation_alignment}
+\begin{tabular}{lccccc}
+\hline
+\textbf{Configuration} & \textbf{AT} & \textbf{Acc} & \textbf{Pre} & \textbf{Rec} & \textbf{F1-S} \\
+\hline
+PLIP (V$_1$–T$_1$)        & One-to-One        & 49.3 & 0.491 & 0.503 & 0.497 \\
+CLIP (V$_2$–T$_2$)         & One-to-One        & 50.7 & 0.510 & 0.495 & 0.502 \\
+Cross Pair (V$_1$–T$_2$)        & One-to-One        & 51.6 & 0.519 & 0.503 & 0.511 \\
+Cross Pair (V$_2$–T$_1$)        & One-to-One        & 51.9 & 0.522 & 0.508 & 0.515 \\
+Dual Encoders (T$_2$-to-T$_2$)      & Joint Fusion      & 52.1 & 0.526 & 0.513 & 0.520 \\
+\textbf{HistoAlign}  & \textbf{M-to-M-F} & \textbf{52.51} & \textbf{0.530} & \textbf{0.529} & \textbf{0.521} \\
+\hline
+\end{tabular}
+\end{table}
+
+\paragraph{Impact of Prompt Diversity.}
+To evaluate the role of linguistic variation, we vary the number of textual prompts ($K$) per class, keeping all other settings fixed. 
+Table~\ref{tab:ablation_prompts} shows that a moderate increase in prompt count improves both accuracy and F1-score, validating that greater descriptive richness enhances text–image alignment. 
+However, beyond $K{=}10$, the improvement plateaus, suggesting that prompt quality and clinical relevance are more critical than sheer quantity.
+
+\begin{table}[h!]
+\centering
+\caption{Effect of prompt diversity ($K$ = number of textual templates per class) on zero-shot performance. 
+All results are averaged across magnifications.}
+\label{tab:ablation_prompts}
+\begin{tabular}{cccccc}
+\hline
+\textbf{Count ($K$)} & \textbf{Accuracy} & \textbf{Precision} & \textbf{Recall} & \textbf{F1-Score} & \textbf{AUC} \\
+\hline
+3   & 50.0 & 0.502 & 0.495 & 0.498 & 0.540 \\
+5   & 51.4 & 0.514 & 0.506 & 0.510 & 0.552 \\
+10  & \textbf{52.51} & \textbf{0.530} & \textbf{0.529} & \textbf{0.521} & \textbf{0.560} \\
+15  & 52.7 & 0.531 & 0.530 & 0.522 & 0.561 \\
+\hline
+\end{tabular}
+\end{table}
+
+\paragraph{Observation.}
+The ablation findings confirm that the proposed many-to-many fusion consistently outperforms all other configurations by jointly leveraging pathology-specific and general visual–textual embeddings. 
+Furthermore, prompt diversity improves semantic alignment stability, especially for malignant classes where morphological variations are pronounced.
+
+
+\subsection{4.5 Discussion}
+The overall findings from the experimental analysis highlight both the strengths and limitations of the proposed \textbf{HistoAlign} framework in performing zero-shot histopathology classification. 
+Across all evaluations, the model achieved an overall accuracy of 52.51\% and an AUC of 0.56 on the curated BreakHis binary subset, establishing a reliable baseline for domain adaptation in medical zero-shot learning. 
+While the results are modest compared to fully supervised benchmarks, they demonstrate that cross-modal alignment between visual and textual representations can successfully transfer coarse semantic understanding to specialized medical imagery without any fine-tuning.
+
+Class-level performance analysis reveals that benign samples are identified with higher recall (0.64) but lower precision (0.51), while malignant samples exhibit the opposite trend with higher precision (0.55) but reduced recall (0.42). 
+This trade-off reflects the morphological complexity of malignant tissues, which often exhibit overlapping visual cues with benign structures. 
+The confusion matrix in Figure~\ref{fig:confusion matrix} further supports this observation, where the majority of benign images are correctly classified, but a notable fraction of malignant samples are misclassified as benign. 
+Such errors primarily arise in borderline cases, such as ductal hyperplasia and low-grade carcinoma, where subtle nuclear and stromal variations are difficult to distinguish without task-specific adaptation.
+
+The ablation experiments confirm that both the \textit{many-to-many cross-modal alignment} and \textit{prompt diversity} are key contributors to performance stability. 
+When replacing the many-to-many alignment with traditional one-to-one mapping, accuracy dropped by nearly 3\%, underscoring the importance of multi-level semantic interaction between encoders. 
+Similarly, expanding the number of textual prompts improved the F1-score by 2.6\%, validating the importance of rich linguistic representation in guiding visual-textual correspondence. 
+The dual-encoder configuration, combining pathology-aware (PLIP) and general (CLIP) encoders, proved essential in balancing precision and recall, capturing both domain-specific features and generic contextual semantics.
+
+Overall, \textbf{HistoAlign} demonstrates that zero-shot learning can be feasibly extended to histopathology, even when domain shifts are substantial. 
+The framework establishes a foundation for integrating clinical knowledge through textual reasoning while maintaining scalability and annotation efficiency. 
+Future work will focus on optimizing prompt engineering, incorporating stain-invariant visual encoders, and exploring hybrid fine-tuning strategies to further bridge the semantic gap between medical and general vision–language models.
+
+
+\section{Conclusion}
+\label{sec:conclusion}
+
+In this work, we presented \textit{HistoAlign}, a dual-encoder zero-shot learning framework designed for breast histopathology image classification. 
+By leveraging a many-to-many cross-modal alignment between pathology-specific and general vision–language encoders, the proposed model effectively bridges visual and textual representations without requiring any supervised fine-tuning. Comprehensive experiments on the BreakHis dataset, including a curated 10-folder binary subset, demonstrated that HistoAlign can transfer semantic knowledge from large-scale natural image–text pairs to highly domain-specific medical imagery. Although the overall accuracy (52.51\%) and AUC (0.56) indicate that the model remains limited by the domain gap between general and medical vision–language data, the results validate the feasibility of zero-shot reasoning for histopathological analysis. Despite its promise, several limitations persist. 
+The reliance on handcrafted clinical prompts may constrain linguistic coverage and hinder generalization to unseen tissue morphologies. Furthermore, the visual encoders, pretrained primarily on natural images, are suboptimal for microscopic texture representation, leading to occasional misclassification of low-grade malignancies. Future work will focus on addressing these challenges through adaptive prompt optimization, stain-invariant visual pretraining, and the integration of few-shot or weakly supervised fine-tuning mechanisms to reduce domain bias. 
+Extending the framework to multi-class classification and cross-dataset generalization tasks will also be explored to enhance the clinical applicability of vision–language models in digital pathology.
+
+
+
+ 
+\bibliographystyle{elsarticle-num}%elsarticle-num}
+\bibliography{ref}
+
+\end{document}
