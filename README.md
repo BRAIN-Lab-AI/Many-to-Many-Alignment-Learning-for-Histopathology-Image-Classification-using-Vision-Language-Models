@@ -116,7 +116,7 @@ beddings to perform classification without explicit task-specific training.
 
 ### Project Documents
 - **Presentation:** [Project Presentation](DL_Presentation.pdf)
-- **Report:** [Project Report]
+- **Report:** [Project Report](Medical_Paper.pdf)
 
 ### Reference Paper
 - [CPLIP: Zero-Shot Learning for Histopathology with Comprehensive
